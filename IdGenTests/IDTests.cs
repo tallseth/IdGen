@@ -1,19 +1,12 @@
 ﻿using IdGen;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
+using NUnit.Framework;
 
 namespace IdGenTests
 {
-    [TestClass]
+    [TestFixture]
     public class IDTests
     {
-        [TestMethod]
+        [Test]
         public void ID_DoesNotEqual_RandomObject()
         {
             var g = new IdGenerator(0);
@@ -25,7 +18,7 @@ namespace IdGenTests
             Assert.AreEqual(i.GetHashCode(), g.FromId(0).GetHashCode());
         }
 
-        [TestMethod]
+        [Test]
         public void ID_Equals_OtherId()
         {
             var g = new IdGenerator(0);
@@ -37,7 +30,7 @@ namespace IdGenTests
             Assert.AreEqual(i.GetHashCode(), g.FromId(1234567890).GetHashCode());
         }
 
-        [TestMethod]
+        [Test]
         public void X()
         {
             var g = new IdGenerator(0);

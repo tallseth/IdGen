@@ -1,14 +1,15 @@
 ﻿using IdGen;
 using IdGenTests.Mocks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using NUnit.Framework;
+using Assert = NUnit.Framework.Assert;
 
 namespace IdGenTests
 {
-    [TestClass]
+    [TestFixture]
     public class IdStructureTests
     {
-        [TestMethod]
+        [Test]
         public void DefaultIdStructure_Matches_Expectations()
         {
             var s = IdStructure.Default;
@@ -21,28 +22,25 @@ namespace IdGenTests
             Assert.AreEqual(long.MaxValue, (s.MaxGenerators * s.MaxIntervals * s.MaxSequenceIds) - 1);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Test]
         public void Constructor_Throws_OnIdStructureNotExactly63Bits()
         {
-            new IdStructure(41, 10, 11);
+            Assert.Throws<InvalidOperationException>(()=>new IdStructure(41, 10, 11));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
+        [Test]
         public void Constructor_Throws_OnGeneratorIdMoreThan31Bits()
         {
-            new IdStructure(21, 32, 10);
+            Assert.Throws<ArgumentOutOfRangeException>(()=>new IdStructure(21, 32, 10));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
+        [Test]
         public void Constructor_Throws_OnSequenceMoreThan31Bits()
         {
-            new IdStructure(21, 10, 32);
+            Assert.Throws<ArgumentOutOfRangeException>(()=>new IdStructure(21, 10, 32));
         }
 
-        [TestMethod]
+        [Test]
         public void IdStructure_CalculatesWraparoundInterval_Correctly()
         {
             var mc_ms = new MockTimeSource();
@@ -73,27 +71,25 @@ namespace IdGenTests
             Assert.AreEqual(22966, (int)(new IdStructure(23, 11, 29).WraparoundInterval(mc_d).TotalDays / 365.25));
         }
 
-        [TestMethod]
+        [Test]
         public void IdStructure_Calculates_WraparoundDate_Correctly()
         {
             var s = IdStructure.Default;
             var mc = new MockTimeSource(TimeSpan.FromMilliseconds(1));
             var d = s.WraparoundDate(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), mc);
-            Assert.AreEqual(new DateTime(643346200555520000, DateTimeKind.Utc), d);
+            Assert.AreEqual(new DateTime(643346200555520000, DateTimeKind.Utc), d.DateTime);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Test]
         public void WraparoundDate_ThrowsOnNullTimeSource()
         {
-            IdStructure.Default.WraparoundDate(IdGeneratorOptions.DefaultEpoch, null);
+            Assert.Throws<ArgumentNullException>(()=>IdStructure.Default.WraparoundDate(IdGeneratorOptions.DefaultEpoch, null));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Test]
         public void WraparoundInterval_ThrowsOnNullTimeSource()
         {
-            IdStructure.Default.WraparoundInterval(null);
+            Assert.Throws<ArgumentNullException>(()=>IdStructure.Default.WraparoundInterval(null));
         }
     }
 }
