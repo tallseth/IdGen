@@ -138,7 +138,7 @@ namespace IdGen
                 // If we're in the same "timeslot" as previous time we generated an Id, up the sequence number
                 if (ticks == _lastgen)
                 {
-                    if (_sequenceGenerator.SequenceExhausted())
+                    if (_sequenceGenerator.IsExhausted())
                     {
                         switch (Options.SequenceOverflowStrategy)
                         {
@@ -154,7 +154,7 @@ namespace IdGen
                 }
                 else // We're in a new(er) "timeslot", so we can reset the sequence and store the new(er) "timeslot"
                 {
-                    _sequenceGenerator.ResetSequence();
+                    _sequenceGenerator.Reset();
                     _lastgen = ticks;
                 }
 
@@ -166,7 +166,7 @@ namespace IdGen
                     SequenceGenerator ret;
                     return (ticks << SHIFT_TIME)
                            + (_generatorid << SHIFT_GENERATOR)
-                           + _sequenceGenerator.GetNextSequenceValue();
+                           + _sequenceGenerator.GetNextValue();
                 }
             }
         }
@@ -227,30 +227,5 @@ namespace IdGen
         /// </summary>
         /// <returns>An <see cref="IEnumerator"/> object that can be used to iterate over Id's.</returns>
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-    
-    public class SequenceGenerator
-    {
-        private int _sequence;
-        private readonly long MASK_SEQUENCE;
-        public SequenceGenerator(long maskSequence)
-        {
-            MASK_SEQUENCE = maskSequence;
-        }
-
-        public int GetNextSequenceValue()
-        {
-            return _sequence++;
-        }
-
-        public void ResetSequence()
-        {
-            _sequence = 0;
-        }
-
-        public bool SequenceExhausted()
-        {
-            return _sequence > MASK_SEQUENCE;
-        }
     }
 }
