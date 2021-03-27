@@ -1,4 +1,6 @@
-﻿namespace IdGen
+﻿using IdGen.Exceptions;
+
+namespace IdGen
 {
     /// <summary>
     /// Specifies the strategy to use when a sequence overflow occurs during generation of an ID.

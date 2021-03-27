@@ -3,6 +3,7 @@ using IdGenTests.Mocks;
 using System;
 using System.Collections;
 using System.Linq;
+using IdGen.Exceptions;
 using NUnit.Framework;
 
 namespace IdGenTests
