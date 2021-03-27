@@ -135,7 +135,7 @@ namespace IdGen
                 // If we're in the same "timeslot" as previous time we generated an Id, up the sequence number
                 if (ticks == _lastgen)
                 {
-                    if (_sequence > MASK_SEQUENCE)
+                    if (SequenceExhausted())
                     {
                         switch (Options.SequenceOverflowStrategy)
                         {
@@ -151,7 +151,7 @@ namespace IdGen
                 }
                 else // We're in a new(er) "timeslot", so we can reset the sequence and store the new(er) "timeslot"
                 {
-                    _sequence = 0;
+                    ResetSequence();
                     _lastgen = ticks;
                 }
 
@@ -162,9 +162,24 @@ namespace IdGen
                     // Build id by shifting all bits into their place
                     return (ticks << SHIFT_TIME)
                         + (_generatorid << SHIFT_GENERATOR)
-                        + _sequence++;
+                        + GetNextSequenceValue();
                 }
             }
+        }
+
+        private int GetNextSequenceValue()
+        {
+            return _sequence++;
+        }
+
+        private void ResetSequence()
+        {
+            _sequence = 0;
+        }
+
+        private bool SequenceExhausted()
+        {
+            return _sequence > MASK_SEQUENCE;
         }
 
         /// <summary>
