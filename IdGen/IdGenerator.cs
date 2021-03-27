@@ -119,16 +119,20 @@ namespace IdGen
             {
                 // Determine "timeslot" and make sure it's >= last timeslot (if any)
                 var ticks = GetTicks();
-                var timestamp = ticks & MASK_TIME;
-
-                if (timestamp < _lastgen || ticks < 0)
+                if ((ticks & MASK_TIME) != ticks)
                 {
-                    exception = new InvalidSystemClockException($"Clock moved backwards or wrapped around. Refusing to generate id for {_lastgen - timestamp} ticks");
+                    exception = new TimestampOverflowException();
+                    return -1;
+                }
+
+                if (ticks < _lastgen || ticks < 0)
+                {
+                    exception = new InvalidSystemClockException($"Clock moved backwards or wrapped around. Refusing to generate id for {_lastgen - ticks} ticks");
                     return -1;
                 }
 
                 // If we're in the same "timeslot" as previous time we generated an Id, up the sequence number
-                if (timestamp == _lastgen)
+                if (ticks == _lastgen)
                 {
                     if (_sequence >= MASK_SEQUENCE)
                     {
@@ -148,7 +152,7 @@ namespace IdGen
                 else // We're in a new(er) "timeslot", so we can reset the sequence and store the new(er) "timeslot"
                 {
                     _sequence = 0;
-                    _lastgen = timestamp;
+                    _lastgen = ticks;
                 }
 
                 unchecked
@@ -156,7 +160,7 @@ namespace IdGen
                     // If we made it here then no exceptions occurred; make sure we communicate that to the caller by setting `exception` to null
                     exception = null;
                     // Build id by shifting all bits into their place
-                    return (timestamp << SHIFT_TIME)
+                    return (ticks << SHIFT_TIME)
                         + (_generatorid << SHIFT_GENERATOR)
                         + _sequence;
                 }

@@ -161,6 +161,15 @@ namespace IdGenTests
             ts.PreviousTick(); // Set clock back 1 'tick', this results in the time going from "100" to "99"
             Assert.Throws<InvalidSystemClockException>(()=>g.CreateId());
         }
+        
+        [Test]
+        public void CreateId_Throws_OnTimeOverflow()
+        {
+            var ts = new MockTimeSource(11); //start at a time that doesn't fit
+            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts, idStructure: new IdStructure(3, 30, 30)));
+
+            Assert.Throws<TimestampOverflowException>(()=>g.CreateId()); // blow up on the first id tried
+        }
 
         [Test]
         public void TryCreateId_Returns_False_OnClockBackwards()
@@ -176,18 +185,18 @@ namespace IdGenTests
         [Test]
         public void CreateId_Throws_OnTimestampWraparound()
         {
-            var ts = new MockTimeSource(long.MaxValue);  // Set clock to 1 'tick' before wraparound
+            var ts = new MockTimeSource(IdStructure.Default.MaxIntervals - 1);  // Set clock to 1 'tick' before wraparound
             var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
 
             Assert.IsTrue(g.CreateId() > 0);                                // Should succeed;
             ts.NextTick();
-            Assert.Throws<InvalidSystemClockException>(()=>g.CreateId());   // Should fail
+            Assert.Throws<TimestampOverflowException>(()=>g.CreateId());   // Should fail
         }
 
         [Test]
         public void TryCreateId_Returns_False_OnTimestampWraparound()
         {
-            var ts = new MockTimeSource(long.MaxValue);  // Set clock to 1 'tick' before wraparound
+            var ts = new MockTimeSource(IdStructure.Default.MaxIntervals - 1);  // Set clock to 1 'tick' before wraparound
             var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
 
             Assert.IsTrue(g.TryCreateId(out var _));    // Should succeed;
