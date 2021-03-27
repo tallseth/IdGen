@@ -15,7 +15,6 @@ namespace IdGen
 #pragma warning restore CA1710 // Identifiers should have correct suffix
     {
         private readonly long _generatorid;
-        private int _sequence = 0;
         private long _lastgen = -1;
 
         private readonly long MASK_SEQUENCE;
@@ -28,6 +27,7 @@ namespace IdGen
 
         // Object to lock() on while generating Id's
         private readonly object _genlock = new object();
+        private readonly SequenceGenerator _sequenceGenerator;
 
         /// <summary>
         /// Gets the <see cref="IdGeneratorOptions"/>.
@@ -45,7 +45,9 @@ namespace IdGen
         /// </summary>
         /// <param name="generatorId">The Id of the generator.</param>
         public IdGenerator(int generatorId)
-            : this(generatorId, new IdGeneratorOptions()) { }
+            : this(generatorId, new IdGeneratorOptions())
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IdGenerator"/> class with the specified <see cref="IdGeneratorOptions"/>.
@@ -69,6 +71,7 @@ namespace IdGen
             MASK_TIME = GetMask(options.IdStructure.TimestampBits);
             MASK_GENERATOR = GetMask(options.IdStructure.GeneratorIdBits);
             MASK_SEQUENCE = GetMask(options.IdStructure.SequenceBits);
+            _sequenceGenerator = new SequenceGenerator(MASK_SEQUENCE);
             SHIFT_TIME = options.IdStructure.GeneratorIdBits + options.IdStructure.SequenceBits;
             SHIFT_GENERATOR = options.IdStructure.SequenceBits;
         }
@@ -135,7 +138,7 @@ namespace IdGen
                 // If we're in the same "timeslot" as previous time we generated an Id, up the sequence number
                 if (ticks == _lastgen)
                 {
-                    if (SequenceExhausted())
+                    if (_sequenceGenerator.SequenceExhausted())
                     {
                         switch (Options.SequenceOverflowStrategy)
                         {
@@ -151,7 +154,7 @@ namespace IdGen
                 }
                 else // We're in a new(er) "timeslot", so we can reset the sequence and store the new(er) "timeslot"
                 {
-                    ResetSequence();
+                    _sequenceGenerator.ResetSequence();
                     _lastgen = ticks;
                 }
 
@@ -160,26 +163,12 @@ namespace IdGen
                     // If we made it here then no exceptions occurred; make sure we communicate that to the caller by setting `exception` to null
                     exception = null;
                     // Build id by shifting all bits into their place
+                    SequenceGenerator ret;
                     return (ticks << SHIFT_TIME)
-                        + (_generatorid << SHIFT_GENERATOR)
-                        + GetNextSequenceValue();
+                           + (_generatorid << SHIFT_GENERATOR)
+                           + _sequenceGenerator.GetNextSequenceValue();
                 }
             }
-        }
-
-        private int GetNextSequenceValue()
-        {
-            return _sequence++;
-        }
-
-        private void ResetSequence()
-        {
-            _sequence = 0;
-        }
-
-        private bool SequenceExhausted()
-        {
-            return _sequence > MASK_SEQUENCE;
         }
 
         /// <summary>
@@ -238,5 +227,30 @@ namespace IdGen
         /// </summary>
         /// <returns>An <see cref="IEnumerator"/> object that can be used to iterate over Id's.</returns>
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+    
+    public class SequenceGenerator
+    {
+        private int _sequence;
+        private readonly long MASK_SEQUENCE;
+        public SequenceGenerator(long maskSequence)
+        {
+            MASK_SEQUENCE = maskSequence;
+        }
+
+        public int GetNextSequenceValue()
+        {
+            return _sequence++;
+        }
+
+        public void ResetSequence()
+        {
+            _sequence = 0;
+        }
+
+        public bool SequenceExhausted()
+        {
+            return _sequence > MASK_SEQUENCE;
+        }
     }
 }
