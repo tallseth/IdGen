@@ -161,7 +161,7 @@ namespace IdGen
                     // If we made it here then no exceptions occurred; make sure we communicate that to the caller by setting `exception` to null
                     exception = null;
                     // Build id by shifting all bits into their place
-                    SequenceGenerator ret;
+                    DefaultSequenceGenerator ret;
                     return (ticks << SHIFT_TIME)
                            + (_generatorid << SHIFT_GENERATOR)
                            + Options.SequenceGenerator.GetNextValue();

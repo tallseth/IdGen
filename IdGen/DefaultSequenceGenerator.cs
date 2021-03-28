@@ -1,10 +1,10 @@
 ﻿namespace IdGen
 {
-    public class SequenceGenerator : ISequenceGenerator
+    public class DefaultSequenceGenerator : ISequenceGenerator
     {
         private readonly IdStructure _idStructure;
         private int _sequence;
-        public SequenceGenerator(IdStructure idStructure)
+        public DefaultSequenceGenerator(IdStructure idStructure)
         {
             _idStructure = idStructure;
         }
