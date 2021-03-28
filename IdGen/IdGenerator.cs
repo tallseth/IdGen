@@ -69,9 +69,7 @@ namespace IdGen
         {
             lock (_genlock)
             {
-                var timeslot = Options.TimeSource.GetTicks();
-                
-                AssertTimeslotIsValid(timeslot);
+                var timeslot = GetCurrentTimeslot();
 
                 if (timeslot == _lastTimeslot && Options.SequenceGenerator.IsExhausted())
                 {
@@ -79,7 +77,7 @@ namespace IdGen
                         throw new SequenceOverflowException();
 
                     SpinWait.SpinUntil(() => _lastTimeslot != Options.TimeSource.GetTicks());
-                    return CreateId();
+                    timeslot = GetCurrentTimeslot();
                 }
                 
                 if(timeslot != _lastTimeslot)
@@ -108,13 +106,16 @@ namespace IdGen
             return Enumerable.Range(0, number).Select(_ => CreateId());
         }
         
-        private void AssertTimeslotIsValid(long timeslot)
+        private long GetCurrentTimeslot()
         {
+            var timeslot = Options.TimeSource.GetTicks();
             if (timeslot >= Options.IdStructure.MaxIntervals)
                 throw new TimestampOverflowException();
 
             if (timeslot < _lastTimeslot || timeslot < 0)
                 throw new InvalidSystemClockException($"Clock moved backwards or wrapped around. Refusing to generate id for {_lastTimeslot - timeslot} ticks");
+            
+            return timeslot;
         }
     }
 }
