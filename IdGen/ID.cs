@@ -76,7 +76,32 @@ namespace IdGen
         /// <param name="other">An <see cref="Id"/> to compare to this instance.</param>
         /// <returns>true if <paramref name="other"/> is equal to this instance; otherwise, false.</returns>
         public bool Equals(Id other) => GeneratorId == other.GeneratorId
-                 && DateTimeOffset == other.DateTimeOffset
-                 && SequenceNumber == other.SequenceNumber;
+                                        && DateTimeOffset == other.DateTimeOffset
+                                        && SequenceNumber == other.SequenceNumber;
+
+        /// <summary>
+        /// Parses a structured Id given the numerical representation and information about the structure it was created with.
+        /// </summary>
+        /// <param name="id">The Id to extract information from.</param>
+        /// <param name="structure">The <see cref="IdStructure"/> used to create the Id</param>
+        /// <param name="timeSource">The <see cref="ITimeSource"/> used to create the Id</param>
+        /// <returns>Returns an <see cref="IdGen.Id" /> that contains information about the 'decoded' Id.</returns>
+        /// <remarks>
+        /// IMPORTANT: If the id was generated with a different <see cref="IdStructure"/> and/or <see cref="ITimeSource"/> than the current one the
+        /// 'decoded' ID will NOT contain correct information.
+        /// </remarks>
+        public static Id Parse(long id, IdStructure structure, ITimeSource timeSource)
+        {
+            if (structure == null) throw new ArgumentNullException(nameof(structure));
+            if (timeSource == null) throw new ArgumentNullException(nameof(timeSource));
+            
+            var shiftTime = (structure.GeneratorIdBits + structure.SequenceBits);
+            var timeMask = (structure.MaxIntervals - 1);
+            return new Id(
+                (int) (id & (structure.MaxSequenceIds - 1)),
+                (int) ((id >> structure.SequenceBits) & (structure.MaxGenerators - 1)),
+                timeSource.Epoch.Add(TimeSpan.FromTicks(((id >> shiftTime) & timeMask) * timeSource.TickDuration.Ticks))
+            );
+        }
     }
 }

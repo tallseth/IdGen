@@ -16,15 +16,10 @@ namespace IdGen
     {
         private readonly long _generatorid;
         private long _lastgen = -1;
-
-        private readonly long MASK_SEQUENCE;
-        private readonly long MASK_TIME;
-        private readonly long MASK_GENERATOR;
-
+        
         private readonly int SHIFT_TIME;
         private readonly int SHIFT_GENERATOR;
-
-
+        
         // Object to lock() on while generating Id's
         private readonly object _genlock = new object();
 
@@ -62,14 +57,10 @@ namespace IdGen
 
             Options = options ?? throw new ArgumentNullException(nameof(options));
 
-            var maxgeneratorid = 1 << Options.IdStructure.GeneratorIdBits;
-            if (_generatorid >= maxgeneratorid)
-                throw new ArgumentOutOfRangeException(nameof(generatorId), $"GeneratorId must be between 0 and {maxgeneratorid - 1}.");
+            if (_generatorid >= Options.IdStructure.MaxGenerators)
+                throw new ArgumentOutOfRangeException(nameof(generatorId), $"GeneratorId must be between 0 and {Options.IdStructure.MaxGenerators - 1}.");
 
             // Precalculate some values
-            MASK_TIME = GetMask(options.IdStructure.TimestampBits);
-            MASK_GENERATOR = GetMask(options.IdStructure.GeneratorIdBits);
-            MASK_SEQUENCE = GetMask(options.IdStructure.SequenceBits);
             SHIFT_TIME = options.IdStructure.GeneratorIdBits + options.IdStructure.SequenceBits;
             SHIFT_GENERATOR = options.IdStructure.SequenceBits;
         }
@@ -121,7 +112,7 @@ namespace IdGen
             {
                 // Determine "timeslot" and make sure it's >= last timeslot (if any)
                 var ticks = GetTicks();
-                if ((ticks & MASK_TIME) != ticks)
+                if (ticks >= Options.IdStructure.MaxIntervals)
                 {
                     exception = new TimestampOverflowException();
                     return -1;
@@ -161,7 +152,6 @@ namespace IdGen
                     // If we made it here then no exceptions occurred; make sure we communicate that to the caller by setting `exception` to null
                     exception = null;
                     // Build id by shifting all bits into their place
-                    DefaultSequenceGenerator ret;
                     return (ticks << SHIFT_TIME)
                            + (_generatorid << SHIFT_GENERATOR)
                            + Options.SequenceGenerator.GetNextValue();
@@ -177,16 +167,12 @@ namespace IdGen
         /// <returns>Returns an <see cref="IdGen.Id" /> that contains information about the 'decoded' Id.</returns>
         /// <remarks>
         /// IMPORTANT: note that this method relies on the <see cref="IdStructure"/> and timesource; if the id was
-        /// generated with a diffferent IdStructure and/or timesource than the current one the 'decoded' ID will NOT
+        /// generated with a different IdStructure and/or timesource than the current one the 'decoded' ID will NOT
         /// contain correct information.
         /// </remarks>
         public Id FromId(long id) =>
             // Deconstruct Id by unshifting the bits into the proper parts
-            new Id(
-                (int)(id & MASK_SEQUENCE),
-                (int)((id >> SHIFT_GENERATOR) & MASK_GENERATOR),
-                Options.TimeSource.Epoch.Add(TimeSpan.FromTicks(((id >> SHIFT_TIME) & MASK_TIME) * Options.TimeSource.TickDuration.Ticks))
-            );
+            IdGen.Id.Parse(id, Options.IdStructure, Options.TimeSource);
 
         /// <summary>
         /// Gets the number of ticks since the <see cref="ITimeSource"/>'s epoch.
@@ -194,15 +180,6 @@ namespace IdGen
         /// <returns>Returns the number of ticks since the <see cref="ITimeSource"/>'s epoch.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private long GetTicks() => Options.TimeSource.GetTicks();
-
-        /// <summary>
-        /// Returns a bitmask masking out the desired number of bits; a bitmask of 2 returns 000...000011, a bitmask of
-        /// 5 returns 000...011111.
-        /// </summary>
-        /// <param name="bits">The number of bits to mask.</param>
-        /// <returns>Returns the desired bitmask.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static long GetMask(byte bits) => (1L << bits) - 1;
 
         /// <summary>
         /// Returns a 'never ending' stream of Id's.
