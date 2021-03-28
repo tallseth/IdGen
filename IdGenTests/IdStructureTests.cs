@@ -91,5 +91,77 @@ namespace IdGenTests
         {
             Assert.Throws<ArgumentNullException>(()=>IdStructure.Default.WraparoundInterval(null));
         }
+
+        [Test]
+        public void RoundTripEncoding_StartWithEncode()
+        {
+            var random = new Random();
+            var ticks = random.Next(0, (2 ^ 31) - 1);
+            var generator = random.Next(0, (2 ^ 20) - 1);
+            var sequence = random.Next(0, (2 ^ 12) - 1);
+            
+            var structure = new IdStructure(31, 20, 12); // arguments must match powers above
+
+            var encoded = structure.Encode(ticks, generator, sequence);
+            structure.Decode(encoded, out var decodedTicks, out var decodedGenerator, out var decodedSequence);
+
+            Assert.That(decodedTicks, Is.EqualTo(ticks));
+            Assert.That(decodedGenerator, Is.EqualTo(generator));
+            Assert.That(decodedSequence, Is.EqualTo(sequence));
+        }
+        
+        [Test]
+        public void RoundTripEncoding_StartWithDecode()
+        {
+            var random = new Random();
+            var id = random.Next(0, (2 ^ 63) - 1);
+            var structure = new IdStructure(31, 20, 12);
+
+            
+            structure.Decode(id, out var ticks, out var generator, out var sequence);
+            var encoded = structure.Encode(ticks, generator, sequence);
+            
+            Assert.That(encoded, Is.EqualTo(id));
+        }
+
+        [Test]
+        public void DecodeZero()
+        {
+            var structure = IdStructure.Default;
+            structure.Decode(0, out var ticks, out var generator, out var sequence);
+
+            Assert.That(ticks, Is.EqualTo(0));
+            Assert.That(generator, Is.EqualTo(0));
+            Assert.That(sequence, Is.EqualTo(0));
+        }
+        
+        [Test]
+        public void DecodeMax()
+        {
+            var structure = IdStructure.Default;
+            structure.Decode(long.MaxValue, out var ticks, out var generator, out var sequence);
+
+            Assert.That(ticks, Is.EqualTo(structure.MaxIntervals - 1));
+            Assert.That(generator, Is.EqualTo(structure.MaxGenerators - 1));
+            Assert.That(sequence, Is.EqualTo(structure.MaxSequenceIds - 1));
+        }
+        
+        [Test]
+        public void EncodeZero()
+        {
+            var structure = IdStructure.Default;
+            var id = structure.Encode(0, 0, 0);
+
+            Assert.That(id, Is.EqualTo(0));
+        }
+        
+        [Test]
+        public void EncodeMax()
+        {
+            var structure = IdStructure.Default;
+            var id = structure.Encode(structure.MaxIntervals - 1, structure.MaxGenerators - 1, structure.MaxSequenceIds - 1);
+
+            Assert.That(id, Is.EqualTo(long.MaxValue));
+        }
     }
 }

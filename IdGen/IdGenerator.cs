@@ -12,9 +12,7 @@ namespace IdGen
     public class IdGenerator : IIdGenerator
     {
         private readonly object _genlock = new object();
-        private readonly long _generatorid;
-        private readonly int SHIFT_TIME;
-        private readonly int SHIFT_GENERATOR;
+        private readonly int _generatorid;
         
         private long _lastTimeslot = -1;
         
@@ -41,16 +39,12 @@ namespace IdGen
                 throw new ArgumentOutOfRangeException(nameof(generatorId), $"GeneratorId must be between 0 and {Options.IdStructure.MaxGenerators - 1}.");
             
             _generatorid = generatorId;
-
-            // Precalculate some values
-            SHIFT_TIME = options.IdStructure.GeneratorIdBits + options.IdStructure.SequenceBits;
-            SHIFT_GENERATOR = options.IdStructure.SequenceBits;
         }
         
         /// <summary>
         /// Gets the Id of the generator.
         /// </summary>
-        public int Id => (int)_generatorid;
+        public int Id => _generatorid;
 
         /// <summary>
         /// Gets the <see cref="IdGeneratorOptions"/>.
@@ -86,13 +80,7 @@ namespace IdGen
                     _lastTimeslot = timeslot;
                 }
 
-                unchecked
-                {
-                    // Build id by shifting all bits into their place
-                    return (timeslot << SHIFT_TIME)
-                           + (_generatorid << SHIFT_GENERATOR)
-                           + Options.SequenceGenerator.GetNextValue();
-                }
+                return Options.IdStructure.Encode(timeslot, _generatorid, Options.SequenceGenerator.GetNextValue());
             }
         }
 

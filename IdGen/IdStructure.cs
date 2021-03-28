@@ -6,20 +6,22 @@ namespace IdGen
     /// </summary>
     public class IdStructure
     {
+        private int _timeShift;
+
         /// <summary>
         /// Gets number of bits to use for the timestamp part of the Id's to generate.
         /// </summary>
-        public byte TimestampBits { get; private set; }
+        public byte TimestampBits { get; }
 
         /// <summary>
         /// Gets number of bits to use for the generator-id part of the Id's to generate.
         /// </summary>
-        public byte GeneratorIdBits { get; private set; }
+        public byte GeneratorIdBits { get; }
 
         /// <summary>
         /// Gets number of bits to use for the sequence part of the Id's to generate.
         /// </summary>
-        public byte SequenceBits { get; private set; }
+        public byte SequenceBits { get; }
 
         /// <summary>
         /// Returns the maximum number of intervals for this <see cref="IdStructure"/> configuration.
@@ -63,6 +65,8 @@ namespace IdGen
             TimestampBits = timestampBits;
             GeneratorIdBits = generatorIdBits;
             SequenceBits = sequenceBits;
+            
+            _timeShift = GeneratorIdBits + SequenceBits;
         }
 
         /// <summary>
@@ -112,6 +116,24 @@ namespace IdGen
             if (timeSource == null)
                 throw new ArgumentNullException(nameof(timeSource));
             return TimeSpan.FromDays(timeSource.TickDuration.TotalDays * MaxIntervals);
+        }
+
+        public long Encode(long ticks, long generatorId, int sequenceValue)
+        {
+            unchecked
+            {
+                // Build id by shifting all bits into their place
+                return (ticks << _timeShift)
+                       + (generatorId << SequenceBits)
+                       + sequenceValue;
+            }
+        }
+
+        public void Decode(long id, out long ticks, out int generatorId, out int sequenceValue)
+        {
+            ticks = (id >> _timeShift) & (MaxIntervals - 1);
+            generatorId = (int) ((id >> SequenceBits) & (MaxGenerators - 1));
+            sequenceValue = (int) (id & (MaxSequenceIds - 1));
         }
     }
 }

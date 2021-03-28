@@ -95,13 +95,9 @@ namespace IdGen
             if (structure == null) throw new ArgumentNullException(nameof(structure));
             if (timeSource == null) throw new ArgumentNullException(nameof(timeSource));
             
-            var shiftTime = (structure.GeneratorIdBits + structure.SequenceBits);
-            var timeMask = (structure.MaxIntervals - 1);
-            return new Id(
-                (int) (id & (structure.MaxSequenceIds - 1)),
-                (int) ((id >> structure.SequenceBits) & (structure.MaxGenerators - 1)),
-                timeSource.Epoch.Add(TimeSpan.FromTicks(((id >> shiftTime) & timeMask) * timeSource.TickDuration.Ticks))
-            );
+            structure.Decode(id, out var ticks, out var generatorId, out var sequenceValue);
+            var timeStamp = timeSource.Epoch.Add(TimeSpan.FromTicks(ticks * timeSource.TickDuration.Ticks));
+            return new Id(sequenceValue, generatorId, timeStamp);
         }
     }
 }
