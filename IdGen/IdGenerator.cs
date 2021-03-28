@@ -97,6 +97,7 @@ namespace IdGen
         private long GetCurrentTimeslot()
         {
             var timeslot = Options.TimeSource.GetTicks();
+            
             if (timeslot >= Options.IdStructure.MaxIntervals)
                 throw new TimestampOverflowException();
 
