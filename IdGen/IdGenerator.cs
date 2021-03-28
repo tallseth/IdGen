@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using IdGen.Exceptions;
 
@@ -25,8 +24,7 @@ namespace IdGen
         /// Gets the <see cref="IdGeneratorOptions"/>.
         /// </summary>
         public IdGeneratorOptions Options { get; }
-
-
+        
         /// <summary>
         /// Gets the Id of the generator.
         /// </summary>
@@ -72,43 +70,18 @@ namespace IdGen
         /// <remarks>Note that this method MAY throw an one of the documented exceptions.</remarks>
         public long CreateId()
         {
-            var id = CreateIdImpl(out var ex);
-            if (ex != null)
-                throw ex;
-            return id;
-        }
-
-        public IEnumerable<long> CreateManyIds(int number)
-        {
-            return Enumerable.Range(0, number).Select(_ => CreateId());
-        }
-
-        /// <summary>
-        /// Creates a new Id.
-        /// </summary>
-        /// <param name="exception">If any exceptions occur they will be returned in this argument.</param>
-        /// <returns>
-        /// Returns an Id based on the <see cref="IdGenerator"/>'s epoch, generatorid and sequence or
-        /// a negative value when an exception occurred.
-        /// </returns>
-        /// <exception cref="InvalidSystemClockException">Thrown when clock going backwards is detected.</exception>
-        /// <exception cref="SequenceOverflowException">Thrown when sequence overflows.</exception>
-        private long CreateIdImpl(out Exception? exception)
-        {
             lock (_genlock)
             {
                 // Determine "timeslot" and make sure it's >= last timeslot (if any)
-                var ticks = GetTicks();
+                var ticks = Options.TimeSource.GetTicks();
                 if (ticks >= Options.IdStructure.MaxIntervals)
                 {
-                    exception = new TimestampOverflowException();
-                    return -1;
+                    throw new TimestampOverflowException();
                 }
 
                 if (ticks < _lastgen || ticks < 0)
                 {
-                    exception = new InvalidSystemClockException($"Clock moved backwards or wrapped around. Refusing to generate id for {_lastgen - ticks} ticks");
-                    return -1;
+                    throw new InvalidSystemClockException($"Clock moved backwards or wrapped around. Refusing to generate id for {_lastgen - ticks} ticks");
                 }
 
                 // If we're in the same "timeslot" as previous time we generated an Id, up the sequence number
@@ -119,11 +92,11 @@ namespace IdGen
                         switch (Options.SequenceOverflowStrategy)
                         {
                             case SequenceOverflowStrategy.SpinWait:
-                                SpinWait.SpinUntil(() => _lastgen != GetTicks());
-                                return CreateIdImpl(out exception); // Try again
+                                SpinWait.SpinUntil(() => _lastgen != Options.TimeSource.GetTicks());
+                                return CreateId(); // Try again
                             case SequenceOverflowStrategy.Throw:
                             default:
-                                exception = new SequenceOverflowException("Sequence overflow. Refusing to generate id for rest of tick");
+                                throw new SequenceOverflowException("Sequence overflow. Refusing to generate id for rest of tick");
                                 return -1;
                         }
                     }
@@ -136,8 +109,6 @@ namespace IdGen
 
                 unchecked
                 {
-                    // If we made it here then no exceptions occurred; make sure we communicate that to the caller by setting `exception` to null
-                    exception = null;
                     // Build id by shifting all bits into their place
                     return (ticks << SHIFT_TIME)
                            + (_generatorid << SHIFT_GENERATOR)
@@ -147,10 +118,13 @@ namespace IdGen
         }
 
         /// <summary>
-        /// Gets the number of ticks since the <see cref="ITimeSource"/>'s epoch.
+        /// Creates a group of Ids, given a number of desired ID's
         /// </summary>
-        /// <returns>Returns the number of ticks since the <see cref="ITimeSource"/>'s epoch.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private long GetTicks() => Options.TimeSource.GetTicks();
+        /// <param name="number">The number of ID's desired</param>
+        /// <returns>An <see cref="IEnumerable{T}"/> of ID's of length <param name="number"/></returns>
+        public IEnumerable<long> CreateManyIds(int number)
+        {
+            return Enumerable.Range(0, number).Select(_ => CreateId());
+        }
     }
 }
