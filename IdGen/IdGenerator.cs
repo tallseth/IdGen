@@ -16,7 +16,7 @@ namespace IdGen
         private readonly int SHIFT_TIME;
         private readonly int SHIFT_GENERATOR;
         
-        private long _lastgen = -1;
+        private long _lastTimeslot = -1;
 
         /// <summary>
         /// Gets the <see cref="IdGeneratorOptions"/>.
@@ -69,39 +69,29 @@ namespace IdGen
         {
             lock (_genlock)
             {
-                var ticks = Options.TimeSource.GetTicks();
-                if (ticks >= Options.IdStructure.MaxIntervals)
-                {
-                    throw new TimestampOverflowException();
-                }
+                var timeslot = Options.TimeSource.GetTicks();
+                
+                AssertTimeslotIsValid(timeslot);
 
-                if (ticks < _lastgen || ticks < 0)
+                if (timeslot == _lastTimeslot && Options.SequenceGenerator.IsExhausted())
                 {
-                    throw new InvalidSystemClockException($"Clock moved backwards or wrapped around. Refusing to generate id for {_lastgen - ticks} ticks");
-                }
+                    if (Options.SequenceOverflowStrategy != SequenceOverflowStrategy.SpinWait)
+                        throw new SequenceOverflowException();
 
-                // If we're in the same "timeslot" as previous time we generated an Id, up the sequence number
-                if (ticks == _lastgen)
-                {
-                    if (Options.SequenceGenerator.IsExhausted())
-                    {
-                        if (Options.SequenceOverflowStrategy != SequenceOverflowStrategy.SpinWait)
-                            throw new SequenceOverflowException();
-
-                        SpinWait.SpinUntil(() => _lastgen != Options.TimeSource.GetTicks());
-                        return CreateId();
-                    }
+                    SpinWait.SpinUntil(() => _lastTimeslot != Options.TimeSource.GetTicks());
+                    return CreateId();
                 }
-                else // We're in a new(er) "timeslot", so we can reset the sequence and store the new(er) "timeslot"
+                
+                if(timeslot != _lastTimeslot)
                 {
                     Options.SequenceGenerator.Reset();
-                    _lastgen = ticks;
+                    _lastTimeslot = timeslot;
                 }
 
                 unchecked
                 {
                     // Build id by shifting all bits into their place
-                    return (ticks << SHIFT_TIME)
+                    return (timeslot << SHIFT_TIME)
                            + (_generatorid << SHIFT_GENERATOR)
                            + Options.SequenceGenerator.GetNextValue();
                 }
@@ -116,6 +106,15 @@ namespace IdGen
         public IEnumerable<long> CreateManyIds(int number)
         {
             return Enumerable.Range(0, number).Select(_ => CreateId());
+        }
+        
+        private void AssertTimeslotIsValid(long timeslot)
+        {
+            if (timeslot >= Options.IdStructure.MaxIntervals)
+                throw new TimestampOverflowException();
+
+            if (timeslot < _lastTimeslot || timeslot < 0)
+                throw new InvalidSystemClockException($"Clock moved backwards or wrapped around. Refusing to generate id for {_lastTimeslot - timeslot} ticks");
         }
     }
 }
