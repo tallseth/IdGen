@@ -17,17 +17,7 @@ namespace IdGen
         private readonly int SHIFT_GENERATOR;
         
         private long _lastTimeslot = -1;
-
-        /// <summary>
-        /// Gets the <see cref="IdGeneratorOptions"/>.
-        /// </summary>
-        public IdGeneratorOptions Options { get; }
         
-        /// <summary>
-        /// Gets the Id of the generator.
-        /// </summary>
-        public int Id => (int)_generatorid;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="IdGenerator"/> class.
         /// </summary>
@@ -56,6 +46,16 @@ namespace IdGen
             SHIFT_TIME = options.IdStructure.GeneratorIdBits + options.IdStructure.SequenceBits;
             SHIFT_GENERATOR = options.IdStructure.SequenceBits;
         }
+        
+        /// <summary>
+        /// Gets the Id of the generator.
+        /// </summary>
+        public int Id => (int)_generatorid;
+
+        /// <summary>
+        /// Gets the <see cref="IdGeneratorOptions"/>.
+        /// </summary>
+        public IdGeneratorOptions Options { get; }
 
         /// <summary>
         /// Creates a new Id.
