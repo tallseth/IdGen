@@ -2,11 +2,11 @@
 {
     public class SequenceGenerator : ISequenceGenerator
     {
+        private readonly IdStructure _idStructure;
         private int _sequence;
-        private readonly long MASK_SEQUENCE;
-        public SequenceGenerator(long maskSequence)
+        public SequenceGenerator(IdStructure idStructure)
         {
-            MASK_SEQUENCE = maskSequence;
+            _idStructure = idStructure;
         }
 
         public int GetNextValue()
@@ -21,7 +21,7 @@
 
         public bool IsExhausted()
         {
-            return _sequence > MASK_SEQUENCE;
+            return _sequence >= _idStructure.MaxSequenceIds;
         }
     }
 }

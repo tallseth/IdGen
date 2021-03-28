@@ -27,7 +27,6 @@ namespace IdGen
 
         // Object to lock() on while generating Id's
         private readonly object _genlock = new object();
-        private readonly SequenceGenerator _sequenceGenerator;
 
         /// <summary>
         /// Gets the <see cref="IdGeneratorOptions"/>.
@@ -71,7 +70,6 @@ namespace IdGen
             MASK_TIME = GetMask(options.IdStructure.TimestampBits);
             MASK_GENERATOR = GetMask(options.IdStructure.GeneratorIdBits);
             MASK_SEQUENCE = GetMask(options.IdStructure.SequenceBits);
-            _sequenceGenerator = new SequenceGenerator(MASK_SEQUENCE);
             SHIFT_TIME = options.IdStructure.GeneratorIdBits + options.IdStructure.SequenceBits;
             SHIFT_GENERATOR = options.IdStructure.SequenceBits;
         }
@@ -138,7 +136,7 @@ namespace IdGen
                 // If we're in the same "timeslot" as previous time we generated an Id, up the sequence number
                 if (ticks == _lastgen)
                 {
-                    if (_sequenceGenerator.IsExhausted())
+                    if (Options.SequenceGenerator.IsExhausted())
                     {
                         switch (Options.SequenceOverflowStrategy)
                         {
@@ -154,7 +152,7 @@ namespace IdGen
                 }
                 else // We're in a new(er) "timeslot", so we can reset the sequence and store the new(er) "timeslot"
                 {
-                    _sequenceGenerator.Reset();
+                    Options.SequenceGenerator.Reset();
                     _lastgen = ticks;
                 }
 
@@ -166,7 +164,7 @@ namespace IdGen
                     SequenceGenerator ret;
                     return (ticks << SHIFT_TIME)
                            + (_generatorid << SHIFT_GENERATOR)
-                           + _sequenceGenerator.GetNextValue();
+                           + Options.SequenceGenerator.GetNextValue();
                 }
             }
         }
