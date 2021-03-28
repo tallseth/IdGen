@@ -51,7 +51,7 @@ namespace IdGen
             ISequenceGenerator? sequenceGenerator = null)
         {
             IdStructure = idStructure ?? IdStructure.Default;
-            TimeSource = timeSource ?? new DefaultTimeSource(DefaultEpoch);
+            TimeSource = timeSource ?? StopwatchTimeSource.GetInstance(DefaultEpoch);
             SequenceOverflowStrategy = sequenceOverflowStrategy;
             SequenceGenerator = sequenceGenerator ?? new DefaultSequenceGenerator(IdStructure);
         }
