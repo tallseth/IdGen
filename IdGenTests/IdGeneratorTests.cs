@@ -206,30 +206,6 @@ namespace IdGenTests
         }
 
         [Test]
-        public void FromId_Returns_CorrectValue()
-        {
-            var s = new IdStructure(42, 8, 13);
-            var epoch = new DateTimeOffset(2018, 7, 31, 14, 48, 2, TimeSpan.FromHours(2));  // Just some "random" epoch...
-            var ts = new MockTimeSource(5, TimeSpan.FromSeconds(7), epoch);                 // Set clock at 5 ticks; each tick being 7 seconds...
-                                                                                            // Set generator ID to 234
-            var g = new IdGenerator(234, new IdGeneratorOptions(s, ts));
-
-            // Generate a bunch of id's
-            long id = 0;
-            for (var i = 0; i < 35; i++)
-                id = g.CreateId();
-
-            var target = g.FromId(id);
-
-
-            Assert.AreEqual(34, target.SequenceNumber);                                     // We generated 35 id's in the same tick, so sequence should be at 34.
-            Assert.AreEqual(234, target.GeneratorId);                                       // With generator id 234
-            Assert.AreEqual(epoch.Add(TimeSpan.FromSeconds(5 * 7)), target.DateTimeOffset); // And the clock was at 5 ticks, with each tick being
-                                                                                            // 7 seconds (so 35 seconds from epoch)
-                                                                                            // And epoch was 2018-7-31 14:48:02 +02:00...
-        }
-
-        [Test]
         public void CreateId_Waits_OnSequenceOverflow()
         {
             // Use timesource that generates a new tick every 10 calls to GetTicks()

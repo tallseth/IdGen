@@ -160,21 +160,6 @@ namespace IdGen
         }
 
         /// <summary>
-        /// Returns information about an Id such as the sequence number, generator id and date/time the Id was generated
-        /// based on the current <see cref="IdStructure"/> of the generator.
-        /// </summary>
-        /// <param name="id">The Id to extract information from.</param>
-        /// <returns>Returns an <see cref="IdGen.Id" /> that contains information about the 'decoded' Id.</returns>
-        /// <remarks>
-        /// IMPORTANT: note that this method relies on the <see cref="IdStructure"/> and timesource; if the id was
-        /// generated with a different IdStructure and/or timesource than the current one the 'decoded' ID will NOT
-        /// contain correct information.
-        /// </remarks>
-        public Id FromId(long id) =>
-            // Deconstruct Id by unshifting the bits into the proper parts
-            IdGen.Id.Parse(id, Options.IdStructure, Options.TimeSource);
-
-        /// <summary>
         /// Gets the number of ticks since the <see cref="ITimeSource"/>'s epoch.
         /// </summary>
         /// <returns>Returns the number of ticks since the <see cref="ITimeSource"/>'s epoch.</returns>
