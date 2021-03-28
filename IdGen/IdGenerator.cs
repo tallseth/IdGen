@@ -11,14 +11,12 @@ namespace IdGen
     /// </summary>
     public class IdGenerator : IIdGenerator
     {
+        private readonly object _genlock = new object();
         private readonly long _generatorid;
-        private long _lastgen = -1;
-        
         private readonly int SHIFT_TIME;
         private readonly int SHIFT_GENERATOR;
         
-        // Object to lock() on while generating Id's
-        private readonly object _genlock = new object();
+        private long _lastgen = -1;
 
         /// <summary>
         /// Gets the <see cref="IdGeneratorOptions"/>.
@@ -47,14 +45,12 @@ namespace IdGen
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
         public IdGenerator(int generatorId, IdGeneratorOptions options)
         {
-            if (generatorId < 0)
-                throw new ArgumentOutOfRangeException(nameof(generatorId), "GeneratorId must be larger than or equal to 0");
-            _generatorid = generatorId;
-
             Options = options ?? throw new ArgumentNullException(nameof(options));
 
-            if (_generatorid >= Options.IdStructure.MaxGenerators)
+            if (generatorId >= Options.IdStructure.MaxGenerators || generatorId < 0)
                 throw new ArgumentOutOfRangeException(nameof(generatorId), $"GeneratorId must be between 0 and {Options.IdStructure.MaxGenerators - 1}.");
+            
+            _generatorid = generatorId;
 
             // Precalculate some values
             SHIFT_TIME = options.IdStructure.GeneratorIdBits + options.IdStructure.SequenceBits;
@@ -66,13 +62,13 @@ namespace IdGen
         /// </summary>
         /// <returns>Returns an Id based on the <see cref="IdGenerator"/>'s epoch, generatorid and sequence.</returns>
         /// <exception cref="InvalidSystemClockException">Thrown when clock going backwards is detected.</exception>
+        /// <exception cref="TimestampOverflowException">Thrown when timestamp overflows allotted bits.</exception>
         /// <exception cref="SequenceOverflowException">Thrown when sequence overflows.</exception>
         /// <remarks>Note that this method MAY throw an one of the documented exceptions.</remarks>
         public long CreateId()
         {
             lock (_genlock)
             {
-                // Determine "timeslot" and make sure it's >= last timeslot (if any)
                 var ticks = Options.TimeSource.GetTicks();
                 if (ticks >= Options.IdStructure.MaxIntervals)
                 {
@@ -89,16 +85,11 @@ namespace IdGen
                 {
                     if (Options.SequenceGenerator.IsExhausted())
                     {
-                        switch (Options.SequenceOverflowStrategy)
-                        {
-                            case SequenceOverflowStrategy.SpinWait:
-                                SpinWait.SpinUntil(() => _lastgen != Options.TimeSource.GetTicks());
-                                return CreateId(); // Try again
-                            case SequenceOverflowStrategy.Throw:
-                            default:
-                                throw new SequenceOverflowException("Sequence overflow. Refusing to generate id for rest of tick");
-                                return -1;
-                        }
+                        if (Options.SequenceOverflowStrategy != SequenceOverflowStrategy.SpinWait)
+                            throw new SequenceOverflowException();
+
+                        SpinWait.SpinUntil(() => _lastgen != Options.TimeSource.GetTicks());
+                        return CreateId();
                     }
                 }
                 else // We're in a new(er) "timeslot", so we can reset the sequence and store the new(er) "timeslot"

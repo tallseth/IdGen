@@ -8,10 +8,6 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="SequenceOverflowException"/> class with a message that describes the error.
         /// </summary>
-        /// <param name="message">
-        /// The message that describes the exception. The caller of this constructor is required to ensure that this 
-        /// string has been localized for the current system culture.
-        /// </param>
-        public SequenceOverflowException(string message) : base(message) { }
+        public SequenceOverflowException() : base("Sequence overflow. Refusing to generate id for rest of tick") { }
     }
 }
