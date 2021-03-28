@@ -120,22 +120,6 @@ namespace IdGenTests
         }
 
         [Test]
-        public void TryCreateId_Returns_False_OnSequenceOverflow()
-        {
-            var ts = new MockTimeSource();
-            var s = new IdStructure(41, 20, 2);
-            var g = new IdGenerator(0, new IdGeneratorOptions(idStructure: s, timeSource: ts));
-
-            // We have a 2-bit sequence; generating 4 id's shouldn't be a problem
-            for (var i = 0; i < 4; i++)
-                Assert.IsTrue(g.TryCreateId(out var _));
-
-            // However, if we invoke once more we should get an SequenceOverflowException
-            // which should be indicated by the false return value
-            Assert.IsFalse(g.TryCreateId(out var _));
-        }
-
-        [Test]
         public void Enumerable_ShoudReturn_Ids()
         {
             var g = new IdGenerator(0, IdGeneratorOptions.Default);
@@ -165,17 +149,6 @@ namespace IdGenTests
         }
 
         [Test]
-        public void TryCreateId_Returns_False_OnClockBackwards()
-        {
-            var ts = new MockTimeSource(100);
-            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
-
-            Assert.IsTrue(g.TryCreateId(out var _));
-            ts.PreviousTick(); // Set clock back 1 'tick', this results in the time going from "100" to "99"
-            Assert.IsFalse(g.TryCreateId(out var _));
-        }
-
-        [Test]
         public void CreateId_Throws_OnTimestampWraparound()
         {
             var ts = new MockTimeSource(IdStructure.Default.MaxIntervals - 1);  // Set clock to 1 'tick' before wraparound
@@ -184,17 +157,6 @@ namespace IdGenTests
             Assert.IsTrue(g.CreateId() > 0);                                // Should succeed;
             ts.NextTick();
             Assert.Throws<TimestampOverflowException>(()=>g.CreateId());   // Should fail
-        }
-
-        [Test]
-        public void TryCreateId_Returns_False_OnTimestampWraparound()
-        {
-            var ts = new MockTimeSource(IdStructure.Default.MaxIntervals - 1);  // Set clock to 1 'tick' before wraparound
-            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
-
-            Assert.IsTrue(g.TryCreateId(out var _));    // Should succeed;
-            ts.NextTick();
-            Assert.IsFalse(g.TryCreateId(out var _));   // Should fail
         }
 
         [Test]

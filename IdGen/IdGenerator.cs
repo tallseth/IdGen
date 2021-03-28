@@ -78,22 +78,6 @@ namespace IdGen
             return id;
         }
 
-        /// <summary>
-        /// Attempts to a new Id. A return value indicates whether the operation succeeded.
-        /// </summary>
-        /// <param name="id">
-        /// When this method returns, contains the generated Id if the method succeeded. If the method failed, as
-        /// indicated by the return value, no guarantees can be made about the id. This parameter is passed uninitialized;
-        /// any value originally supplied in result will be overwritten.
-        /// </param>
-        /// <returns>true if an Id was generated successfully; false otherwise.</returns>
-        /// <remarks>This method will not throw exceptions but rather indicate success by the return value.</remarks>
-        public bool TryCreateId(out long id)
-        {
-            id = CreateIdImpl(out var ex);
-            return ex == null;
-        }
-
         public IEnumerable<long> CreateManyIds(int number)
         {
             return Enumerable.Range(0, number).Select(_ => CreateId());
