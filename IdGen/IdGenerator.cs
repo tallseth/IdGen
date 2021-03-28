@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using IdGen.Exceptions;
@@ -10,9 +10,7 @@ namespace IdGen
     /// <summary>
     /// Generates Id's inspired by Twitter's (late) Snowflake project.
     /// </summary>
-#pragma warning disable CA1710 // Identifiers should have correct suffix
-    public class IdGenerator : IIdGenerator<long>
-#pragma warning restore CA1710 // Identifiers should have correct suffix
+    public class IdGenerator : IIdGenerator
     {
         private readonly long _generatorid;
         private long _lastgen = -1;
@@ -96,6 +94,11 @@ namespace IdGen
             return ex == null;
         }
 
+        public IEnumerable<long> CreateManyIds(int number)
+        {
+            return Enumerable.Range(0, number).Select(_ => CreateId());
+        }
+
         /// <summary>
         /// Creates a new Id.
         /// </summary>
@@ -165,27 +168,5 @@ namespace IdGen
         /// <returns>Returns the number of ticks since the <see cref="ITimeSource"/>'s epoch.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private long GetTicks() => Options.TimeSource.GetTicks();
-
-        /// <summary>
-        /// Returns a 'never ending' stream of Id's.
-        /// </summary>
-        /// <returns>A 'never ending' stream of Id's.</returns>
-        private IEnumerable<long> IdStream()
-        {
-            while (true)
-                yield return CreateId();
-        }
-
-        /// <summary>
-        /// Returns an enumerator that iterates over Id's.
-        /// </summary>
-        /// <returns>An <see cref="IEnumerator&lt;T&gt;"/> object that can be used to iterate over Id's.</returns>
-        public IEnumerator<long> GetEnumerator() => IdStream().GetEnumerator();
-
-        /// <summary>
-        /// Returns an enumerator that iterates over Id's.
-        /// </summary>
-        /// <returns>An <see cref="IEnumerator"/> object that can be used to iterate over Id's.</returns>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

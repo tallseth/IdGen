@@ -139,16 +139,8 @@ namespace IdGenTests
         public void Enumerable_ShoudReturn_Ids()
         {
             var g = new IdGenerator(0, IdGeneratorOptions.Default);
-            var ids = g.Take(1000).ToArray();
+            var ids = g.CreateManyIds(1000).ToArray();
 
-            Assert.AreEqual(1000, ids.Distinct().Count());
-        }
-
-        [Test]
-        public void Enumerable_ShoudReturn_Ids_InterfaceExplicit()
-        {
-            var g = (IEnumerable)new IdGenerator(0, IdGeneratorOptions.Default);
-            var ids = g.OfType<long>().Take(1000).ToArray();
             Assert.AreEqual(1000, ids.Distinct().Count());
         }
 
