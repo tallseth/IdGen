@@ -63,6 +63,7 @@
     <Compile Include="Mocks\MockAutoIncrementingIntervalTimeSource.cs" />
     <Compile Include="Mocks\MockTimeSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StopwatchTimeSourceTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\IdGen.Configuration\IdGen.Configuration.csproj">
