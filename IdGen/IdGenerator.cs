@@ -16,22 +16,7 @@ namespace IdGen
         
         private long _lastTimeslot = -1;
         
-        /// <summary>
-        /// Initializes a new instance of the <see cref="IdGenerator"/> class.
-        /// </summary>
-        /// <param name="generatorId">The Id of the generator.</param>
-        public IdGenerator(int generatorId)
-            : this(generatorId, new IdGeneratorOptions())
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="IdGenerator"/> class with the specified <see cref="IdGeneratorOptions"/>.
-        /// </summary>
-        /// <param name="generatorId">The Id of the generator.</param>
-        /// <param name="options">The <see cref="IdGeneratorOptions"/> for the <see cref="IdGenerator"/></param>.
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
-        public IdGenerator(int generatorId, IdGeneratorOptions options)
+        private IdGenerator(int generatorId, IdGeneratorOptions options)
         {
             Options = options ?? throw new ArgumentNullException(nameof(options));
 
@@ -41,6 +26,26 @@ namespace IdGen
             _generatorid = generatorId;
         }
         
+        /// <summary>
+        /// Creates a new <see cref="IIdGenerator"/> with the default <see cref="IdGeneratorOptions"/>.
+        /// </summary>
+        /// <param name="generatorId">The Id of the generator.</param>
+        public static IIdGenerator CreateInstanceWithDefaultOptions(int generatorId)
+        {
+            return CreateInstance(generatorId, IdGeneratorOptions.Default);
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="IIdGenerator"/> class with the specified <see cref="IdGeneratorOptions"/>.
+        /// </summary>
+        /// <param name="generatorId">The Id of the generator.</param>
+        /// <param name="options">The <see cref="IdGeneratorOptions"/> for the <see cref="IdGenerator"/></param>.
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
+        public static IIdGenerator CreateInstance(int generatorId, IdGeneratorOptions options)
+        {
+            return new IdGenerator(generatorId, options);
+        }
+
         /// <summary>
         /// Gets the Id of the generator.
         /// </summary>

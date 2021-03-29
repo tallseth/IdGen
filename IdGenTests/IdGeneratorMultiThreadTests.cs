@@ -14,7 +14,7 @@ namespace IdGenTests
         [Test]
         public void SlidingWindowBasicTest()
         {
-            var generator = new IdGenerator(0);
+            var generator = IdGenerator.CreateInstanceWithDefaultOptions(0);
             
             var ids = new List<long>();
 
@@ -41,7 +41,7 @@ namespace IdGenTests
                 timeSource:new MockAutoIncrementingIntervalTimeSource(10), 
                 idStructure: new IdStructure(61, 0, 2), 
                 sequenceOverflowStrategy:SequenceOverflowStrategy.SpinWait);
-            var generator = new IdGenerator(0, idGeneratorOptions);
+            var generator = IdGenerator.CreateInstance(0, idGeneratorOptions);
             
             var ids = new List<long>();
 

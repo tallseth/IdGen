@@ -16,7 +16,7 @@ namespace IdGenTests
             // We setup our generator so that the time is 0, generator id 0 and we're only left with the sequence
             // increasing each invocation of CreateId();
             var ts = new MockTimeSource(0);
-            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
+            var g = IdGenerator.CreateInstance(0, new IdGeneratorOptions(timeSource: ts));
 
             Assert.AreEqual(0, g.CreateId());
             Assert.AreEqual(1, g.CreateId());
@@ -29,7 +29,7 @@ namespace IdGenTests
             // We setup our generator so that the time is 0, generator id 0 and we're only left with the sequence
             // increasing each invocation of CreateId();
             var ts = new MockTimeSource(0);
-            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
+            var g = IdGenerator.CreateInstance(0, new IdGeneratorOptions(timeSource: ts));
 
             Assert.AreEqual(0, g.CreateId());
             Assert.AreEqual(1, g.CreateId());
@@ -46,7 +46,7 @@ namespace IdGenTests
             // We setup our generator so that the time is 0 and generator id equals 1023 so that all 10 bits are set
             // for the generator.
             var ts = new MockTimeSource(0);
-            var g = new IdGenerator(1023, new IdGeneratorOptions(timeSource: ts));
+            var g = IdGenerator.CreateInstance(1023, new IdGeneratorOptions(timeSource: ts));
 
             // Make sure all expected bits are set
             Assert.AreEqual((1 << g.Options.IdStructure.GeneratorIdBits) - 1 << g.Options.IdStructure.SequenceBits, g.CreateId());
@@ -59,7 +59,7 @@ namespace IdGenTests
             // for the generator.
             var ts = new MockTimeSource();
             var s = new IdStructure(40, 12, 11); // We use a custom IdStructure with 12 bits for the generator this time
-            var g = new IdGenerator(4095, new IdGeneratorOptions(s, ts));
+            var g = IdGenerator.CreateInstance(4095, new IdGeneratorOptions(s, ts));
 
             // Make sure all expected bits are set
             Assert.AreEqual(-1 & ((1 << 12) - 1), g.Id);
@@ -72,7 +72,7 @@ namespace IdGenTests
             // We setup our generator so that the time is 0 and generator id equals 1023 so that all 10 bits are set
             // for the generator.
             var ts = new MockTimeSource();
-            var g = new IdGenerator(1023, new IdGeneratorOptions(timeSource: ts));
+            var g = IdGenerator.CreateInstance(1023, new IdGeneratorOptions(timeSource: ts));
 
             // Make sure all expected bits are set
             Assert.AreEqual((1 << g.Options.IdStructure.GeneratorIdBits) - 1, g.Id);
@@ -81,26 +81,26 @@ namespace IdGenTests
         [Test]
         public void Constructor_Throws_OnNull_Options()
         {
-            Assert.Throws<ArgumentNullException>(()=>new IdGenerator(1024, null));
+            Assert.Throws<ArgumentNullException>(()=>IdGenerator.CreateInstance(1024, null));
         }
 
 
         [Test]
         public void Constructor_Throws_OnInvalidGeneratorId_Positive()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(()=>new IdGenerator(1024, new IdGeneratorOptions(new IdStructure(41, 10, 12))));
+            Assert.Throws<ArgumentOutOfRangeException>(()=>IdGenerator.CreateInstance(1024, new IdGeneratorOptions(new IdStructure(41, 10, 12))));
         }
 
         [Test]
         public void Constructor_Throws_OnInvalidGeneratorId_Negative()
         {
-            Assert.Throws<ArgumentOutOfRangeException>(()=>new IdGenerator(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(()=>IdGenerator.CreateInstanceWithDefaultOptions(-1));
         }
 
         [Test]
         public void Constructor_UsesCorrectId()
         {
-            Assert.AreEqual(42, new IdGenerator(42).Id);
+            Assert.AreEqual(42, IdGenerator.CreateInstanceWithDefaultOptions(42).Id);
         }
 
         [Test]
@@ -108,7 +108,7 @@ namespace IdGenTests
         {
             var ts = new MockTimeSource();
             var s = new IdStructure(41, 20, 2);
-            var g = new IdGenerator(0, new IdGeneratorOptions(idStructure: s, timeSource: ts));
+            var g = IdGenerator.CreateInstance(0, new IdGeneratorOptions(idStructure: s, timeSource: ts));
 
             // We have a 2-bit sequence; generating 4 id's shouldn't be a problem
             for (var i = 0; i < 4; i++)
@@ -121,7 +121,7 @@ namespace IdGenTests
         [Test]
         public void Enumerable_ShoudReturn_Ids()
         {
-            var g = new IdGenerator(0, IdGeneratorOptions.Default);
+            var g = IdGenerator.CreateInstance(0, IdGeneratorOptions.Default);
             var ids = g.CreateManyIds(1000).ToArray();
 
             Assert.AreEqual(1000, ids.Distinct().Count());
@@ -131,7 +131,7 @@ namespace IdGenTests
         public void CreateId_Throws_OnClockBackwards()
         {
             var ts = new MockTimeSource(100);
-            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
+            var g = IdGenerator.CreateInstance(0, new IdGeneratorOptions(timeSource: ts));
 
             g.CreateId();
             ts.PreviousTick(); // Set clock back 1 'tick', this results in the time going from "100" to "99"
@@ -142,7 +142,7 @@ namespace IdGenTests
         public void CreateId_Throws_OnTimeOverflow()
         {
             var ts = new MockTimeSource(11); //start at a time that doesn't fit
-            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts, idStructure: new IdStructure(3, 30, 30)));
+            var g = IdGenerator.CreateInstance(0, new IdGeneratorOptions(timeSource: ts, idStructure: new IdStructure(3, 30, 30)));
 
             Assert.Throws<TimestampOverflowException>(()=>g.CreateId()); // blow up on the first id tried
         }
@@ -151,7 +151,7 @@ namespace IdGenTests
         public void CreateId_Throws_OnTimestampWraparound()
         {
             var ts = new MockTimeSource(IdStructure.Default.MaxIntervals - 1);  // Set clock to 1 'tick' before wraparound
-            var g = new IdGenerator(0, new IdGeneratorOptions(timeSource: ts));
+            var g = IdGenerator.CreateInstance(0, new IdGeneratorOptions(timeSource: ts));
 
             Assert.IsTrue(g.CreateId() > 0);                                // Should succeed;
             ts.NextTick();
@@ -164,7 +164,7 @@ namespace IdGenTests
             // Use timesource that generates a new tick every 10 calls to GetTicks()
             var ts = new MockAutoIncrementingIntervalTimeSource(10);
             var s = new IdStructure(61, 0, 2);
-            var g = new IdGenerator(0, new IdGeneratorOptions(idStructure: s, timeSource: ts, sequenceOverflowStrategy: SequenceOverflowStrategy.SpinWait));
+            var g = IdGenerator.CreateInstance(0, new IdGeneratorOptions(idStructure: s, timeSource: ts, sequenceOverflowStrategy: SequenceOverflowStrategy.SpinWait));
 
             // We have a 2-bit sequence; generating 4 id's in a single time slot - wait for other then
             Assert.AreEqual(0, g.CreateId());
