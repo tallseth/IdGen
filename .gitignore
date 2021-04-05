@@ -196,3 +196,6 @@ FakesAssemblies/
 *.opt
 
 *.chm
+
+# Jetbrains Rider workspace files
+.idea/

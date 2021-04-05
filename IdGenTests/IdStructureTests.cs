@@ -1,14 +1,15 @@
 ﻿using IdGen;
 using IdGenTests.Mocks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using NUnit.Framework;
+using Assert = NUnit.Framework.Assert;
 
 namespace IdGenTests
 {
-    [TestClass]
+    [TestFixture]
     public class IdStructureTests
     {
-        [TestMethod]
+        [Test]
         public void DefaultIdStructure_Matches_Expectations()
         {
             var s = IdStructure.Default;
@@ -21,28 +22,25 @@ namespace IdGenTests
             Assert.AreEqual(long.MaxValue, (s.MaxGenerators * s.MaxIntervals * s.MaxSequenceIds) - 1);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(InvalidOperationException))]
+        [Test]
         public void Constructor_Throws_OnIdStructureNotExactly63Bits()
         {
-            new IdStructure(41, 10, 11);
+            Assert.Throws<InvalidOperationException>(()=>new IdStructure(41, 10, 11));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
+        [Test]
         public void Constructor_Throws_OnGeneratorIdMoreThan31Bits()
         {
-            new IdStructure(21, 32, 10);
+            Assert.Throws<ArgumentOutOfRangeException>(()=>new IdStructure(21, 32, 10));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentOutOfRangeException))]
+        [Test]
         public void Constructor_Throws_OnSequenceMoreThan31Bits()
         {
-            new IdStructure(21, 10, 32);
+            Assert.Throws<ArgumentOutOfRangeException>(()=>new IdStructure(21, 10, 32));
         }
 
-        [TestMethod]
+        [Test]
         public void IdStructure_CalculatesWraparoundInterval_Correctly()
         {
             var mc_ms = new MockTimeSource();
@@ -73,27 +71,97 @@ namespace IdGenTests
             Assert.AreEqual(22966, (int)(new IdStructure(23, 11, 29).WraparoundInterval(mc_d).TotalDays / 365.25));
         }
 
-        [TestMethod]
+        [Test]
         public void IdStructure_Calculates_WraparoundDate_Correctly()
         {
             var s = IdStructure.Default;
             var mc = new MockTimeSource(TimeSpan.FromMilliseconds(1));
             var d = s.WraparoundDate(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc), mc);
-            Assert.AreEqual(new DateTime(643346200555520000, DateTimeKind.Utc), d);
+            Assert.AreEqual(new DateTime(643346200555520000, DateTimeKind.Utc), d.DateTime);
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Test]
         public void WraparoundDate_ThrowsOnNullTimeSource()
         {
-            IdStructure.Default.WraparoundDate(IdGeneratorOptions.DefaultEpoch, null);
+            Assert.Throws<ArgumentNullException>(()=>IdStructure.Default.WraparoundDate(IdGeneratorOptions.DefaultEpoch, null));
         }
 
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
+        [Test]
         public void WraparoundInterval_ThrowsOnNullTimeSource()
         {
-            IdStructure.Default.WraparoundInterval(null);
+            Assert.Throws<ArgumentNullException>(()=>IdStructure.Default.WraparoundInterval(null));
+        }
+
+        [Test]
+        public void RoundTripEncoding_StartWithEncode()
+        {
+            var random = new Random();
+            var ticks = random.Next(0, (2 ^ 31) - 1);
+            var generator = random.Next(0, (2 ^ 20) - 1);
+            var sequence = random.Next(0, (2 ^ 12) - 1);
+            
+            var structure = new IdStructure(31, 20, 12); // arguments must match powers above
+
+            var encoded = structure.Encode(ticks, generator, sequence);
+            structure.Decode(encoded, out var decodedTicks, out var decodedGenerator, out var decodedSequence);
+
+            Assert.That(decodedTicks, Is.EqualTo(ticks));
+            Assert.That(decodedGenerator, Is.EqualTo(generator));
+            Assert.That(decodedSequence, Is.EqualTo(sequence));
+        }
+        
+        [Test]
+        public void RoundTripEncoding_StartWithDecode()
+        {
+            var random = new Random();
+            var id = random.Next(0, (2 ^ 63) - 1);
+            var structure = new IdStructure(31, 20, 12);
+
+            
+            structure.Decode(id, out var ticks, out var generator, out var sequence);
+            var encoded = structure.Encode(ticks, generator, sequence);
+            
+            Assert.That(encoded, Is.EqualTo(id));
+        }
+
+        [Test]
+        public void DecodeZero()
+        {
+            var structure = IdStructure.Default;
+            structure.Decode(0, out var ticks, out var generator, out var sequence);
+
+            Assert.That(ticks, Is.EqualTo(0));
+            Assert.That(generator, Is.EqualTo(0));
+            Assert.That(sequence, Is.EqualTo(0));
+        }
+        
+        [Test]
+        public void DecodeMax()
+        {
+            var structure = IdStructure.Default;
+            structure.Decode(long.MaxValue, out var ticks, out var generator, out var sequence);
+
+            Assert.That(ticks, Is.EqualTo(structure.MaxIntervals - 1));
+            Assert.That(generator, Is.EqualTo(structure.MaxGenerators - 1));
+            Assert.That(sequence, Is.EqualTo(structure.MaxSequenceIds - 1));
+        }
+        
+        [Test]
+        public void EncodeZero()
+        {
+            var structure = IdStructure.Default;
+            var id = structure.Encode(0, 0, 0);
+
+            Assert.That(id, Is.EqualTo(0));
+        }
+        
+        [Test]
+        public void EncodeMax()
+        {
+            var structure = IdStructure.Default;
+            var id = structure.Encode(structure.MaxIntervals - 1, structure.MaxGenerators - 1, structure.MaxSequenceIds - 1);
+
+            Assert.That(id, Is.EqualTo(long.MaxValue));
         }
     }
 }
